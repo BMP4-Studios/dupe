@@ -23,8 +23,7 @@ defaults:
   run:
     shell: bash
 
-# jobs are run in parallel on different machines
-# all steps run in series
+# jobs are run in parallel on different machines; all steps run in series
 jobs:
   build_and_test:
     # don't double run on PRs
@@ -38,11 +37,10 @@ jobs:
           - name: Linux
             os: ubuntu-22.04
             pluginval-binary: ./pluginval
-            extra-flags: -G Ninja
           - name: macOS
             os: macos-14
             pluginval-binary: pluginval.app/Contents/MacOS/pluginval
-            extra-flags: -G Ninja -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+            extra-flags: -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
           - name: Windows
             os: windows-latest
             pluginval-binary: ./pluginval.exe
@@ -55,14 +53,6 @@ jobs:
       - name: Set up Clang
         if: runner.os == 'Linux'
         uses: egor-tensin/setup-clang@v2
-
-      # This also starts up our "fake" display (Xvfb), needed for pluginval
-      - name: Install JUCE's Linux Deps
-        if: runner.os == 'Linux'
-        # Thanks to McMartin & co https://forum.juce.com/t/list-of-juce-dependencies-under-linux/15121/44
-        run: |
-          sudo apt-get update && sudo apt install libasound2-dev libx11-dev libxinerama-dev libxext-dev libfreetype6-dev libwebkit2gtk-4.1-dev libglu1-mesa-dev xvfb ninja-build
-          sudo /usr/bin/Xvfb $DISPLAY &
 
       - name: Install Ninja (Windows)
         if: runner.os == 'Windows'
@@ -77,11 +67,24 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/install-linux-deps
+        with:
+          start-xvfb: 'true'
+
       - name: Cache the build
         uses: mozilla-actions/sccache-action@v0.0.10
 
       - name: Configure
-        run: cmake -B ${{ env.BUILD_DIR }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE}} -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ${{ matrix.extra-flags }} .
+        run: >-
+          cmake -B ${{ env.BUILD_DIR }}
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          -DCMAKE_C_COMPILER_LAUNCHER=sccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+          ${{ matrix.extra-flags }}
+          .
 
       - name: Build
         run: cmake --build ${{ env.BUILD_DIR }} --config ${{ env.BUILD_TYPE }}
@@ -227,28 +230,15 @@ jobs:
           name: ${{ env.ARTIFACT_NAME }}.pkg
           path: packaging/${{ env.ARTIFACT_NAME }}.pkg
 
-  sanitizers:
-    # Build *only* the Tests target (via cmake --build --target Tests) with
-    # runtime sanitizers enabled. juce_add_plugin still runs at configure time
-    # (Tests.cmake / Benchmarks.cmake read COMPILE_DEFINITIONS off the plugin
-    # target), but the AU/VST3/Standalone format targets are never built because
-    # they're not a dependency of Tests.
+  # The instrumented tests (sanitizer or coverage) build *only* the Tests target (via cmake --build --target Tests)
+  instrumented_tests:
+    # don't double run on PRs (same logic as build_and_test above)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     strategy:
       fail-fast: false
       matrix:
         include:
-          # ASan and RTSan route through lld. UBSan and TSan use the default
-          # linker — they pass as-is.
-          #
-          # ASan: gold's --gc-sections discards asan.module_ctor/dtor sections
-          # during LTO, leaving dangling refs in .init_array. lld handles the
-          # section-group semantics correctly.
-          #
-          # RTSan: requires Clang 20+ (when -fsanitize=realtime shipped). We
-          # install clang-20/lld-20 from apt.llvm.org on a plain ubuntu-latest
-          # runner rather than using a prebuilt container (previous attempt
-          # used ghcr.io/guillaumeriousat/algogris-rtsan, but its custom Clang
-          # 20 + no bundled lld led to LTO bitcode version mismatches).
+          # ASan and RTSan need lld (gold mishandles their LTO sections — drops asan.module_ctor); UBSan and TSan use the default linker.
           - name: AddressSanitizer
             c_flags:      "-fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -g"
             linker_flags: "-fsanitize=address -fsanitize=undefined -fuse-ld=lld"
@@ -267,6 +257,12 @@ jobs:
             c_flags:      "-fsanitize=realtime"
             linker_flags: "-fsanitize=realtime -fuse-ld=lld-20"
 
+          # Coverage uses Clang's gcov-compatible --coverage instrumentation, scoped to SharedCode INTERFACE via
+          # -DENABLE_COVERAGE=ON so Catch2 / JUCE / other deps don't get instrumented.
+          - name: Coverage
+            build_type:   Debug
+            cmake_flags:  "-DENABLE_COVERAGE=ON"
+
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     env:
@@ -279,15 +275,13 @@ jobs:
         with:
           submodules: recursive
 
-      # Ubuntu's default clang (18) for ASan/UBSan/TSan. RTSan needs a newer
-      # compiler, handled below.
+      # Ubuntu's default clang (18) for ASan/UBSan/TSan. RTSan needs a newer compiler, handled below.
       - name: Set up Clang
         if: matrix.name != 'RealtimeSanitizer'
         uses: egor-tensin/setup-clang@v2
 
-      # RTSan requires Clang 20+ and a matching lld (apt's lld 18 can't read
-      # bitcode produced by clang-20 under LTO). apt.llvm.org's llvm.sh installs
-      # clang/lld/etc. for a pinned LLVM version from the upstream apt repo.
+      # RTSan requires Clang 20+ and a matching lld (apt's lld 18 can't read bitcode produced by clang-20 under LTO).
+      # apt.llvm.org's llvm.sh installs clang/lld/etc. for a pinned LLVM version from the upstream apt repo.
       - name: Install Clang 20 + lld 20 (RTSan)
         if: matrix.name == 'RealtimeSanitizer'
         run: |
@@ -296,37 +290,62 @@ jobs:
           sudo ./llvm.sh 20
           sudo apt-get install -y clang-20 lld-20
 
-      # Tests links SharedCode, which pulls in juce_gui_basics/juce_gui_extra —
-      # so we need the Linux GUI dev libraries even though we never build the
-      # standalone/plugin binaries themselves. lld is here for the ASan job
-      # (RTSan installed its own lld-20 above).
-      - name: Install JUCE Linux dependencies
-        run: >-
-          sudo apt-get update &&
-          sudo apt-get install -y ninja-build lld
-          libasound2-dev libx11-dev libxinerama-dev libxext-dev
-          libfreetype6-dev libwebkit2gtk-4.1-dev libglu1-mesa-dev
+      - name: Install Linux dependencies
+        uses: ./.github/actions/install-linux-deps
+
+      - name: Install gcovr
+        if: matrix.name == 'Coverage'
+        run: |
+          pipx install gcovr
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Configure
         run: >-
-          cmake -B Builds
+          cmake -B ${{ env.BUILD_DIR }}
           -G Ninja
-          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type || 'Release' }}
           -DCMAKE_C_FLAGS="${{ matrix.c_flags }}"
           -DCMAKE_CXX_FLAGS="${{ matrix.c_flags }}"
           -DCMAKE_EXE_LINKER_FLAGS="${{ matrix.linker_flags }}"
           -DCMAKE_SHARED_LINKER_FLAGS="${{ matrix.linker_flags }}"
+          ${{ matrix.cmake_flags }}
 
       - name: Build
-        run: cmake --build Builds --target Tests
+        run: cmake --build ${{ env.BUILD_DIR }} --target Tests
 
-      # Benchmarks.cmake's catch_discover_tests(Benchmarks) registers a
-      # "<name>_NOT_BUILT-<hash>" placeholder test whenever the Benchmarks
-      # binary is missing. Since we deliberately skip building Benchmarks under
-      # sanitizers (they're too slow to instrument), we filter that placeholder
-      # out of the ctest run rather than build the whole benchmark suite.
+      # Benchmarks.cmake's catch_discover_tests(Benchmarks) registers a "<name>_NOT_BUILT-<hash>" placeholder test
+      # whenever the Benchmarks binary is missing. We deliberately skip building Benchmarks here (sanitizers are too
+      # slow to instrument; coverage doesn't need them) so we filter that placeholder out of the ctest run.
       - name: Test
-        run: ctest --test-dir Builds --output-on-failure --verbose -E NOT_BUILT
+        run: ctest --test-dir ${{ env.BUILD_DIR }} --output-on-failure --verbose -E NOT_BUILT
+
+      # Coverage-only: gcovr emits an HTML report (uploaded as an artifact for drill-down) plus a plain-text summary
+      # that we paste into the run's Step Summary for at-a-glance numbers.
+      - name: Generate coverage report
+        if: matrix.name == 'Coverage'
+        run: |
+          mkdir -p coverage-html
+          gcovr --root . \
+            --gcov-executable "llvm-cov gcov" \
+            --gcov-ignore-errors=no_working_dir_found \
+            --filter 'source/' \
+            --html-details coverage-html/index.html \
+            --txt coverage.txt \
+            --print-summary
+          {
+            echo "## Coverage"
+            echo ''
+            echo '```'
+            cat coverage.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage HTML
+        if: matrix.name == 'Coverage'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-html
+          path: coverage-html/
 
   clang-tidy:
     name: clang-tidy
@@ -341,32 +360,20 @@ jobs:
           submodules: recursive
           fetch-depth: 0     # cpp-linter needs history to diff changed files
 
-      - name: Install build tools
-        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Install Linux dependencies
+        uses: ./.github/actions/install-linux-deps
 
-      - name: Install JUCE Linux dependencies
-        run: >-
-          sudo apt-get install -y
-          libasound2-dev libx11-dev libxinerama-dev libxext-dev
-          libfreetype6-dev libwebkit2gtk-4.1-dev libglu1-mesa-dev
-
-      # Configure with the plugin target enabled so compile_commands.json covers
-      # every one of our source files (plugin + tests).
       - name: Configure
         run: >-
-          cmake -B Builds
+          cmake -B ${{ env.BUILD_DIR }}
           -G Ninja
           -DCMAKE_BUILD_TYPE=Debug
           -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
-      # Build so JUCE's juceaide-generated headers exist on disk before tidy
-      # tries to parse includes referencing them.
       - name: Build
-        run: cmake --build Builds -j
+        run: cmake --build ${{ env.BUILD_DIR }} -j
 
-      # cpp-linter runs clang-tidy and posts findings as PR review comments
-      # (on pull_request) or a step summary (on push). It uses .clang-tidy
-      # from the repo root and compile_commands.json from Builds/.
+      # cpp-linter runs clang-tidy and posts findings as PR review comments and step summaries
       - uses: cpp-linter/cpp-linter-action@v2
         id: linter
         env:
@@ -374,25 +381,18 @@ jobs:
         with:
           style: ''                  # don't run clang-format
           tidy-checks: ''            # use project .clang-tidy
-          database: Builds
+          database: ${{ env.BUILD_DIR }}
           files-changed-only: false
-          # Only post a summary comment on PRs. On push events cpp-linter would
-          # try to post a commit comment, which needs contents:write — not
-          # worth the broader token scope since the Actions step summary already
-          # shows push-run results.
+          # Only post a summary comment on PRs
           thread-comments: ${{ github.event_name == 'pull_request' }}
           tidy-review: true
           step-summary: true
           extensions: cpp,h
-          # Skip build output, JUCE, submodules, cmake includes, and CI configs.
-          # We only want tidy to look at our own source tree (source/, tests/,
-          # benchmarks/).
-          ignore: 'Builds|JUCE|modules|cmake|.github'
+          # We only want tidy to look at our own source tree (source/, tests/, benchmarks/).
+          # Benchmarks.cpp is #included into Catch2Main.cpp and covered there.
+          ignore: '${{ env.BUILD_DIR }}|JUCE|modules|cmake|.github|benchmarks/Benchmarks.cpp'
 
-      # Step exits 1 when tidy finds anything, but continue-on-error keeps the
-      # job green — the step still shows a ⚠️ in the Actions UI and findings
-      # appear in the step summary / PR comments. Drop continue-on-error to
-      # turn tidy findings into hard merge blockers.
+      # Step exits with code 1 when tidy finds anything, but continue-on-error keeps the job green
       - name: Fail on tidy issues
         if: steps.linter.outputs.checks-failed > 0
         continue-on-error: true
@@ -413,9 +413,8 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           prerelease: true
-          # download-artifact puts these files in their own dirs...
-          # Using globs sidesteps having to pass the version around
+          # download-artifact puts these files in their own dirs; Using globs sidesteps having to pass the version around
           files: |
             */*.exe
             */*.zip
-            */*.dmg
+            */*.pkg

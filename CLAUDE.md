@@ -91,3 +91,11 @@ For anything in the audio thread / hot DSP path (e.g. `processBlock`):
 ## Code Style
 
 Uses `.clang-format` with Allman-style braces, 4-space indentation, no column limit.
+
+## Workflow
+
+Confirm with me before taking action, unless the prompt already tells you explicitly what to do. When unsure, propose the change and wait for the green light rather than executing.
+
+- "Should we…?" / "What about…?" / "Can you look at…?" — discuss and recommend, don't execute.
+- "Do X" / "Add Y" / "Fix Z" — proceed without asking.
+- Multi-step work: if a follow-on step wasn't covered by the original ask (e.g. adding a test, editing CI, touching a submodule), stop and confirm before doing it.

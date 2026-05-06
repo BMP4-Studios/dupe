@@ -14,6 +14,12 @@ _deps
 Builds/*
 !Builds/.gitkeep
 
+# Other build directories (e.g. Builds-rtsan, build-debug)
+Builds-*/
+[Bb]uild/
+[Bb]uild-*/
+
+
 # This should never exist
 Install/*
 
