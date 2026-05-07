@@ -10,6 +10,7 @@ PluginProcessor::PluginProcessor()
     pitchParam      = apvts.getRawParameterValue (Parameters::pitchID);
     mixParam        = apvts.getRawParameterValue (Parameters::mixID);
     monoListenParam = apvts.getRawParameterValue (Parameters::monoListenID);
+    algorithmParam  = apvts.getRawParameterValue (Parameters::algorithmID);
 }
 
 PluginProcessor::~PluginProcessor() = default;
@@ -26,7 +27,7 @@ void               PluginProcessor::setCurrentProgram (int) {}
 const juce::String PluginProcessor::getProgramName (int) { return {}; }
 void               PluginProcessor::changeProgramName (int, const juce::String&) {}
 
-void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock) RTSAN_BLOCKING
 {
     juce::dsp::ProcessSpec spec;
     spec.sampleRate       = sampleRate;
@@ -52,13 +53,14 @@ bool PluginProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
     return main == layouts.getMainInputChannelSet();
 }
 
-void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) noexcept
+void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) noexcept RTSAN_NONBLOCKING
 {
     juce::ScopedNoDenormals noDenormals;
 
     const auto cents      = pitchParam->load();
     const auto mix        = mixParam->load();
     const auto monoListen = monoListenParam->load() > 0.5f;
+    const auto algorithm  = static_cast<int> (algorithmParam->load());
 
     shifterUp.setCents (cents);
     shifterDown.setCents (-cents);
@@ -76,8 +78,21 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
         const float wetL = shifterUp.processSample (dry);
         const float wetR = shifterDown.processSample (dry);
 
-        L[i] = dry * (1.0f - mix) + wetL * mix;
-        R[i] = dry * (1.0f - mix) + wetR * mix;
+        if (algorithm == Parameters::Algorithm::MSWide)
+        {
+            // Mid = dry, Side = decorrelated wet difference.
+            // (L+R)/2 collapses to dry exactly, so mono is artifact-free.
+            // mix [0,1] is rescaled to width [0,2] for stronger sides.
+            const float side  = 0.5f * (wetL - wetR);
+            const float width = 2.0f * mix;
+            L[i]              = dry + width * side;
+            R[i]              = dry - width * side;
+        }
+        else
+        {
+            L[i] = dry * (1.0f - mix) + wetL * mix;
+            R[i] = dry * (1.0f - mix) + wetR * mix;
+        }
     }
 
     if (monoListen && numChannels > 1)

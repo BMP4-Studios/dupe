@@ -7,6 +7,13 @@ namespace Parameters
 inline constexpr auto pitchID      = "pitch";
 inline constexpr auto mixID        = "mix";
 inline constexpr auto monoListenID = "monoListen";
+inline constexpr auto algorithmID  = "algorithm";
+
+enum Algorithm
+{
+    Classic = 0,
+    MSWide  = 1
+};
 
 inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 {
@@ -24,6 +31,9 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         ParameterID { mixID, 1 }, "Mix", NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 1.0f));
 
     params.push_back (std::make_unique<AudioParameterBool> (ParameterID { monoListenID, 1 }, "Mono Listen", false));
+
+    params.push_back (std::make_unique<AudioParameterChoice> (
+        ParameterID { algorithmID, 1 }, "Algorithm", StringArray { "Classic", "M/S Wide" }, Algorithm::Classic));
 
     return { params.begin(), params.end() };
 }

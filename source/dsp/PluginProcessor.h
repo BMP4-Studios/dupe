@@ -12,7 +12,7 @@ public:
     PluginProcessor();
     ~PluginProcessor() override;
 
-    void prepareToPlay (double sampleRate, int samplesPerBlock) override;
+    void prepareToPlay (double sampleRate, int samplesPerBlock) RTSAN_BLOCKING override;
     void releaseResources() override;
 
     bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
@@ -47,6 +47,7 @@ private:
     std::atomic<float>* pitchParam      = nullptr;
     std::atomic<float>* mixParam        = nullptr;
     std::atomic<float>* monoListenParam = nullptr;
+    std::atomic<float>* algorithmParam  = nullptr;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginProcessor)
 };

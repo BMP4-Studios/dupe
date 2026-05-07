@@ -20,6 +20,12 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
     monoListenAttachment
         = std::make_unique<ButtonAttachment> (processorRef.apvts, Parameters::monoListenID, monoListenButton);
 
+    addAndMakeVisible (algorithmCombo);
+    algorithmCombo.addItem ("Classic", 1);
+    algorithmCombo.addItem ("M/S Wide", 2);
+    algorithmAttachment
+        = std::make_unique<ComboBoxAttachment> (processorRef.apvts, Parameters::algorithmID, algorithmCombo);
+
     auto setupLabel = [this] (juce::Label& l)
     {
         addAndMakeVisible (l);
@@ -28,6 +34,8 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
 
     setupLabel (pitchLabel);
     setupLabel (mixLabel);
+    setupLabel (algorithmLabel);
+    algorithmLabel.setJustificationType (juce::Justification::centredRight);
 
     addAndMakeVisible (inspectButton);
     inspectButton.onClick = [this]
@@ -54,6 +62,11 @@ void PluginEditor::paint (juce::Graphics& g)
 void PluginEditor::resized()
 {
     auto area = getLocalBounds().reduced (12);
+
+    auto top = area.removeFromTop (24);
+    algorithmLabel.setBounds (top.removeFromLeft (90));
+    algorithmCombo.setBounds (top.removeFromLeft (160));
+    area.removeFromTop (8);
 
     auto bottom = area.removeFromBottom (30);
     inspectButton.setBounds (bottom.removeFromRight (140));
