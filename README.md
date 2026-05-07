@@ -1,10 +1,13 @@
 [![Build](https://github.com/vberthiaume/dupe/actions/workflows/build_and_test.yml/badge.svg?branch=main)](https://github.com/vberthiaume/dupe/actions/workflows/build_and_test.yml)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-# Dupe — micro pitch-shifter
-A JUCE audio plugin that doubles a mono signal across the stereo field with two micro pitch-shifted voices. One voice shifts up by `Pitch` cents, the other down by the same amount; the up-shifted voice goes to the left channel and the down-shifted voice to the right. The result is the wide, lush, slightly chorus-y doubling effect heard on countless guitar and vocal recordings — cheap to compute, low-latency, and convincing.
+# Dupe — mono-to-stereo widener
 
-Parameters: `Pitch` (0–30 cents, default 7), `Mix` (0–1, default 1.0), `Mono Listen` (sums output to mono after processing — useful for checking mono-compatibility).
+![One does not simply turn a mono signal into stereo](https://github.com/user-attachments/assets/68a7dfb9-5bfe-4c21-8e8a-593ed6d06d6f)
+
+A JUCE audio plugin that turns a mono source (typically a guitar or vocal) into a wide stereo image while staying perfectly mono-compatible. Two micro pitch-shifters detune the input by ±`Pitch` cents; their decorrelated difference forms a pure side signal, while the dry input stays as the mid. The output is constructed as `L = dry + width·side`, `R = dry − width·side`, so summing `(L+R)/2` collapses back to the dry signal exactly — no comb filtering, no level drop, no chorusing on mono. An optional Haas-style precedence delay on one of the wet branches broadens the image further without breaking mono compatibility.
+
+Parameters: `Pitch` (0–40 cents, default 7), `Mix` (0–1, default 1.0 — scales the side gain up to 4× internally), `Haas` (0–30 ms, default 0), `Mono Listen` (sums output to mono in-plugin — useful for verifying mono compatibility).
 
 Built on the [Starty](https://github.com/vberthiaume/starty) template, which itself derives from [Pamplejuce](https://github.com/sudara/pamplejuce).
 
@@ -80,6 +83,8 @@ Dupe is released under the [GNU Affero General Public License, version 3](LICENS
 This project links against [JUCE](https://juce.com/), used under the AGPLv3 free-use option of JUCE Ltd's dual-license terms.
 
 ### Third-party attribution
+The "One Does Not Simply" meme variant at the top of this README is from [URM Academy](https://urm.academy/).
+
 Portions of the build system and project scaffolding derive from the [Pamplejuce](https://github.com/sudara/pamplejuce) template, which is distributed under the MIT License:
 
 > MIT License
