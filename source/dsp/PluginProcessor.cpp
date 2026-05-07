@@ -133,5 +133,5 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
             apvts.replaceState (juce::ValueTree::fromXml (*xml));
 }
 
-juce::AudioProcessorEditor*         PluginProcessor::createEditor() { return new PluginEditor (*this); }
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new PluginProcessor(); }
+juce::AudioProcessorEditor*         PluginProcessor::createEditor() { return new PluginEditor (*this); } //NOLINT
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new PluginProcessor(); }               //NOLINT
