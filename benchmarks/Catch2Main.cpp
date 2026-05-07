@@ -20,4 +20,4 @@ int main (int argc, char* argv[])
 #include "catch2/benchmark/catch_benchmark_all.hpp"
 #include "catch2/catch_test_macros.hpp"
 
-#include "Benchmarks.cpp"
+#include "Benchmarks.cpp" // NOLINT(bugprone-suspicious-include) intentional unity-build pattern for Catch2 benchmarks

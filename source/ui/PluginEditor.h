@@ -3,13 +3,14 @@
 #include "../dsp/PluginProcessor.h"
 #include "melatonin_inspector/melatonin_inspector.h"
 
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions) -- JUCE_DECLARE_NON_COPYABLE deletes copies; moves
 class PluginEditor : public juce::AudioProcessorEditor
 {
 public:
     explicit PluginEditor (PluginProcessor&);
     ~PluginEditor() override;
 
-    void paint (juce::Graphics&) override;
+    void paint (juce::Graphics& g) override;
     void resized() override;
 
 private:

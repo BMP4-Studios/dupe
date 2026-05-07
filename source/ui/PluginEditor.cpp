@@ -1,26 +1,39 @@
 #include "PluginEditor.h"
 #include "BinaryData.h"
 
+namespace
+{
+constexpr int editorWidth      = 420;
+constexpr int editorHeight     = 280;
+constexpr int outerMargin      = 12;
+constexpr int gap              = 8;
+constexpr int labelHeight      = 24;
+constexpr int bottomRowHeight  = 30;
+constexpr int bottomButtonW    = 140;
+constexpr int sliderTextWidth  = 80;
+constexpr int sliderTextHeight = 20;
+} // namespace
+
 PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), processorRef (p)
 {
     auto setupRotary = [this] (juce::Slider& s)
     {
         addAndMakeVisible (s);
         s.setSliderStyle (juce::Slider::RotaryVerticalDrag);
-        s.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 80, 20);
+        s.setTextBoxStyle (juce::Slider::TextBoxBelow, false, sliderTextWidth, sliderTextHeight);
     };
 
     setupRotary (pitchSlider);
     setupRotary (mixSlider);
     setupRotary (haasSlider);
 
-    pitchAttachment = std::make_unique<SliderAttachment> (processorRef.apvts, Parameters::pitchID, pitchSlider);
-    mixAttachment   = std::make_unique<SliderAttachment> (processorRef.apvts, Parameters::mixID, mixSlider);
-    haasAttachment  = std::make_unique<SliderAttachment> (processorRef.apvts, Parameters::haasID, haasSlider);
+    pitchAttachment = std::make_unique<SliderAttachment> (processorRef.getApvts(), Parameters::pitchID, pitchSlider);
+    mixAttachment   = std::make_unique<SliderAttachment> (processorRef.getApvts(), Parameters::mixID, mixSlider);
+    haasAttachment  = std::make_unique<SliderAttachment> (processorRef.getApvts(), Parameters::haasID, haasSlider);
 
     addAndMakeVisible (monoListenButton);
     monoListenAttachment
-        = std::make_unique<ButtonAttachment> (processorRef.apvts, Parameters::monoListenID, monoListenButton);
+        = std::make_unique<ButtonAttachment> (processorRef.getApvts(), Parameters::monoListenID, monoListenButton);
 
     auto setupLabel = [this] (juce::Label& l)
     {
@@ -43,7 +56,7 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
         inspector->setVisible (true);
     };
 
-    setSize (420, 280);
+    setSize (editorWidth, editorHeight);
 }
 
 PluginEditor::~PluginEditor() = default;
@@ -56,13 +69,13 @@ void PluginEditor::paint (juce::Graphics& g)
 
 void PluginEditor::resized()
 {
-    auto area = getLocalBounds().reduced (12);
+    auto area = getLocalBounds().reduced (outerMargin);
 
-    auto bottom = area.removeFromBottom (30);
-    inspectButton.setBounds (bottom.removeFromRight (140));
-    monoListenButton.setBounds (bottom.removeFromLeft (140));
+    auto bottom = area.removeFromBottom (bottomRowHeight);
+    inspectButton.setBounds (bottom.removeFromRight (bottomButtonW));
+    monoListenButton.setBounds (bottom.removeFromLeft (bottomButtonW));
 
-    area.removeFromBottom (8);
+    area.removeFromBottom (gap);
 
     auto       knobs     = area;
     const auto third     = knobs.getWidth() / 3;
@@ -70,12 +83,12 @@ void PluginEditor::resized()
     auto       mixArea   = knobs.removeFromLeft (third);
     auto       haasArea  = knobs;
 
-    pitchLabel.setBounds (pitchArea.removeFromTop (24));
+    pitchLabel.setBounds (pitchArea.removeFromTop (labelHeight));
     pitchSlider.setBounds (pitchArea);
 
-    mixLabel.setBounds (mixArea.removeFromTop (24));
+    mixLabel.setBounds (mixArea.removeFromTop (labelHeight));
     mixSlider.setBounds (mixArea);
 
-    haasLabel.setBounds (haasArea.removeFromTop (24));
+    haasLabel.setBounds (haasArea.removeFromTop (labelHeight));
     haasSlider.setBounds (haasArea);
 }

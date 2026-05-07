@@ -9,11 +9,9 @@
 /**
     Rotational double-tap micro-pitch-shifter.
 
-    Two read heads on a circular buffer, offset by half its length. Each head
-    moves at the pitch-shifted rate; an equal-power crossfade hides the wrap
-    discontinuity at the active head's edge by handing off to the head that's
-    currently mid-buffer. Cheap, low-latency, and the canonical algorithm for
-    +/- 50 cent doubling effects.
+    Two read heads on a circular buffer, offset by half its length. Each head moves at the pitch-shifted rate; an
+    equal-power crossfade hides the wrap discontinuity at the active head's edge by handing off to the head that's
+    currently mid-buffer. Cheap, low-latency, and the canonical algorithm for +/- 50 cent doubling effects.
 
     Mono in, mono out. For stereo, use two instances.
 */
@@ -25,9 +23,11 @@ public:
 
     void prepare (const juce::dsp::ProcessSpec& spec) RTSAN_BLOCKING
     {
-        const auto bufferSamples = static_cast<int> ((bufferLengthMs * 0.001) * spec.sampleRate);
+        constexpr int  minBufferSamples = 32;
+        constexpr auto msToSec          = 0.001;
+        const auto     bufferSamples    = static_cast<int> ((bufferLengthMs * msToSec) * spec.sampleRate);
 
-        bufferSize = juce::jmax (32, bufferSamples);
+        bufferSize = juce::jmax (minBufferSamples, bufferSamples);
         buffer.assign (static_cast<size_t> (bufferSize), SampleType (0));
 
         reset();
@@ -55,29 +55,23 @@ public:
         const auto bufferSizeF = static_cast<SampleType> (bufferSize);
         const auto halfBuffer  = bufferSizeF * SampleType (0.5);
 
-        // Two read positions: A trails the write head by delayA samples;
-        // B trails by delayA + halfBuffer. Wrap A first, *then* derive B from
-        // the wrapped value — otherwise B can land more than one buffer below
-        // zero and a single conditional wrap leaves it negative.
+        // Two read positions: A trails the write head by delayA samples; B trails by delayA + halfBuffer. Wrap A
+        // first, *then* derive B from the wrapped value — otherwise B can land more than one buffer below zero
+        // and a single conditional wrap leaves it negative.
         auto readPosA = static_cast<SampleType> (writePos) - delayA;
         if (readPosA < SampleType (0))
-        {
             readPosA += bufferSizeF;
-        }
 
         auto readPosB = readPosA - halfBuffer;
         if (readPosB < SampleType (0))
-        {
             readPosB += bufferSizeF;
-        }
 
         const auto a = interpolate (readPosA);
         const auto b = interpolate (readPosB);
 
-        // Hann-window crossfade. Heads read the *same* buffer at offset
-        // positions, so the two contributions are correlated and need
-        // constant-amplitude (sin² + cos² = 1) — equal-power (sin + cos)
-        // would over-shoot by up to √2 on slowly varying content.
+        // Hann-window crossfade. Heads read the *same* buffer at offset positions, so the two contributions are
+        // correlated and need constant-amplitude (sin² + cos² = 1) — equal-power (sin + cos) would over-shoot by up to
+        // √2 on slowly varying content.
         const auto phase   = delayA / bufferSizeF;
         const auto sinHalf = std::sin (phase * juce::MathConstants<SampleType>::pi);
         const auto cosHalf = std::cos (phase * juce::MathConstants<SampleType>::pi);
@@ -90,19 +84,14 @@ public:
         // Advance state. Sub-sample-accurate delay for smooth pitch tracking.
         delayA += SampleType (1) - ratio;
         if (delayA < SampleType (0))
-        {
             delayA += bufferSizeF;
-        }
+
         if (delayA >= bufferSizeF)
-        {
             delayA -= bufferSizeF;
-        }
 
         ++writePos;
         if (writePos >= bufferSize)
-        {
             writePos = 0;
-        }
 
         return out;
     }

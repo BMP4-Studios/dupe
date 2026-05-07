@@ -1,16 +1,21 @@
 #include "PluginProcessor.h"
 #include "../ui/PluginEditor.h"
 
+namespace
+{
+constexpr float msToSec = 0.001f;
+}
+
 PluginProcessor::PluginProcessor()
 : AudioProcessor (BusesProperties()
                       .withInput ("Input", juce::AudioChannelSet::stereo(), true)
                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
-  apvts (*this, nullptr, "state", Parameters::createLayout())
+  apvts (*this, nullptr, "state", Parameters::createLayout()),
+  pitchParam (apvts.getRawParameterValue (Parameters::pitchID)),
+  mixParam (apvts.getRawParameterValue (Parameters::mixID)),
+  monoListenParam (apvts.getRawParameterValue (Parameters::monoListenID)),
+  haasParam (apvts.getRawParameterValue (Parameters::haasID))
 {
-    pitchParam      = apvts.getRawParameterValue (Parameters::pitchID);
-    mixParam        = apvts.getRawParameterValue (Parameters::mixID);
-    monoListenParam = apvts.getRawParameterValue (Parameters::monoListenID);
-    haasParam       = apvts.getRawParameterValue (Parameters::haasID);
 }
 
 PluginProcessor::~PluginProcessor() = default;
@@ -23,13 +28,14 @@ double             PluginProcessor::getTailLengthSeconds() const { return 0.0; }
 
 int                PluginProcessor::getNumPrograms() { return 1; }
 int                PluginProcessor::getCurrentProgram() { return 0; }
-void               PluginProcessor::setCurrentProgram (int) {}
-const juce::String PluginProcessor::getProgramName (int) { return {}; }
-void               PluginProcessor::changeProgramName (int, const juce::String&) {}
+void               PluginProcessor::setCurrentProgram (int /*index*/) {}
+const juce::String PluginProcessor::getProgramName (int /*index*/) { return {}; }
+void               PluginProcessor::changeProgramName (int /*index*/, const juce::String& /*newName*/) {}
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters) -- JUCE override signature, can't change
 void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock) RTSAN_BLOCKING
 {
-    juce::dsp::ProcessSpec spec;
+    juce::dsp::ProcessSpec spec {};
     spec.sampleRate       = sampleRate;
     spec.maximumBlockSize = static_cast<juce::uint32> (samplesPerBlock);
     spec.numChannels      = 1;
@@ -41,7 +47,7 @@ void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock) RTS
 
     // Haas-style precedence delay applied to wetR. Antisymmetric side preserves mono compatibility; the delay
     // decorrelates L/R in time to broaden stereo image. Allocate for the full parameter range; delay is set per-block.
-    const auto maxHaasSamples = static_cast<int> (Parameters::haasMaxMs * 0.001f * sampleRate) + 1;
+    const auto maxHaasSamples = static_cast<int> (Parameters::haasMaxMs * msToSec * sampleRate) + 1;
     haasDelay.setMaximumDelayInSamples (maxHaasSamples);
     haasDelay.prepare (spec);
     haasDelay.reset();
@@ -63,7 +69,8 @@ bool PluginProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
     return main == layouts.getMainInputChannelSet();
 }
 
-void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) noexcept RTSAN_NONBLOCKING
+void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer,
+                                    juce::MidiBuffer& /*midiMessages*/) noexcept RTSAN_NONBLOCKING
 {
     juce::ScopedNoDenormals noDenormals;
 
@@ -75,7 +82,7 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     shifterUp.setCents (cents);
     shifterDown.setCents (-cents);
 
-    haasDelay.setDelay (haasMs * 0.001f * static_cast<float> (currentSampleRate));
+    haasDelay.setDelay (haasMs * msToSec * static_cast<float> (currentSampleRate));
 
     const auto numChannels = buffer.getNumChannels();
     const auto numSamples  = buffer.getNumSamples();
