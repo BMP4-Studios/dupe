@@ -86,7 +86,20 @@ For anything in the audio thread / hot DSP path (e.g. `processBlock`):
 - Avoid dynamic allocations and container growth (`std::vector::push_back`, map insertion, string building)
 - Prefer fixed-size storage (`std::array`, preallocated buffers, fixed-capacity queues)
 - Keep operations deterministic and lock-free where possible
+- Annotate hot-path functions with `RTSAN_NONBLOCKING` (and explicit boundaries with `RTSAN_BLOCKING`) from `source/util/RealtimeAttributes.h` so RealtimeSanitizer can analyse them. The macros expand to `[[clang::nonblocking]]` / `[[clang::blocking]]` on Clang ≥ 20, nothing elsewhere.
 
 ## Code Style
 
-Uses `.clang-format` with Allman-style braces, 4-space indentation, no column limit.
+Uses `.clang-format` with Allman-style braces, 4-space indentation, and a 120-column limit.
+
+All code you write — including comments — must conform to `.clang-format`. The repo has a pre-commit hook that rejects unformatted C/C++ files, so don't expect a later auto-fix step to clean up. Match the surrounding style (alignment of consecutive declarations/assignments, brace placement, parameter wrapping) on the first pass.
+
+Hard-wrap comments at column 120 too. clang-format has `ReflowComments: false`, so it won't reformat them automatically — write them at the right width up front.
+
+## Workflow
+
+Confirm with me before taking action, unless the prompt already tells you explicitly what to do. When unsure, propose the change and wait for the green light rather than executing.
+
+- "Should we…?" / "What about…?" / "Can you look at…?" — discuss and recommend, don't execute.
+- "Do X" / "Add Y" / "Fix Z" — proceed without asking.
+- Multi-step work: if a follow-on step wasn't covered by the original ask (e.g. adding a test, editing CI, touching a submodule), stop and confirm before doing it.

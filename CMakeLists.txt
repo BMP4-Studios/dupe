@@ -38,6 +38,10 @@ set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT Embedded CACHE STRING "" FORCE)
 # For simplicity, the name of the CMake project is also the name of the target
 project(${PROJECT_NAME} VERSION ${CURRENT_VERSION})
 
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 # Log build environment info (after project() so compiler info is available)
 include(PamplejuceLog)
 
@@ -140,6 +144,16 @@ target_link_libraries(SharedCode
     juce::juce_recommended_config_flags
     juce::juce_recommended_lto_flags
     juce::juce_recommended_warning_flags)
+
+# Coverage instrumentation: scoped to SharedCode INTERFACE so it propagates to
+# Tests + plugin formats but NOT to FetchContent'd Catch2 / JUCE submodules.
+# Keeping Catch2 uninstrumented avoids gcov failing on third-party source paths
+# it can't resolve, and keeps the report focused on our own code.
+option(ENABLE_COVERAGE "Build with Clang/GCC --coverage instrumentation" OFF)
+if(ENABLE_COVERAGE)
+    target_compile_options(SharedCode INTERFACE --coverage)
+    target_link_options(SharedCode INTERFACE --coverage)
+endif()
 
 # Link the JUCE plugin targets our SharedCode target
 target_link_libraries("${PROJECT_NAME}" PRIVATE SharedCode)
