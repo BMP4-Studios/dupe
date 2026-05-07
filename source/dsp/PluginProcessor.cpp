@@ -46,11 +46,8 @@ void PluginProcessor::releaseResources()
 bool PluginProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
     const auto& main = layouts.getMainOutputChannelSet();
-
     if (main != juce::AudioChannelSet::stereo() && main != juce::AudioChannelSet::mono())
-    {
         return false;
-    }
 
     return main == layouts.getMainInputChannelSet();
 }
@@ -94,26 +91,18 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     }
 }
 
-bool                        PluginProcessor::hasEditor() const { return true; }
-juce::AudioProcessorEditor* PluginProcessor::createEditor() { return new PluginEditor (*this); }
-
 void PluginProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     if (auto xml = apvts.copyState().createXml())
-    {
         copyXmlToBinary (*xml, destData);
-    }
 }
 
 void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     if (auto xml = getXmlFromBinary (data, sizeInBytes))
-    {
         if (xml->hasTagName (apvts.state.getType()))
-        {
             apvts.replaceState (juce::ValueTree::fromXml (*xml));
-        }
-    }
 }
 
+juce::AudioProcessorEditor*         PluginProcessor::createEditor() { return new PluginEditor (*this); }
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new PluginProcessor(); }

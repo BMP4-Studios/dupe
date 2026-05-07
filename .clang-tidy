@@ -9,6 +9,8 @@ Checks: >
   -readability-magic-numbers,
   -readability-braces-around-statements,
   -readability-identifier-length,
-  -readability-uppercase-literal-suffix
+  -readability-uppercase-literal-suffix,
+  -readability-named-parameters,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic
 HeaderFilterRegex: '(source|tests|benchmarks)/.*'
 FormatStyle: file

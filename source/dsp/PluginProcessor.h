@@ -20,7 +20,7 @@ public:
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) noexcept RTSAN_NONBLOCKING override;
 
     juce::AudioProcessorEditor* createEditor() override;
-    bool                        hasEditor() const override;
+    bool                        hasEditor() const override { return true; }
 
     const juce::String getName() const override;
 

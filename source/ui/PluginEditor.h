@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../dsp/PluginProcessor.h"
-#include "BinaryData.h"
 #include "melatonin_inspector/melatonin_inspector.h"
 
 class PluginEditor : public juce::AudioProcessorEditor
