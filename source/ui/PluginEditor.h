@@ -13,25 +13,24 @@ public:
     void resized() override;
 
 private:
-    using SliderAttachment   = juce::AudioProcessorValueTreeState::SliderAttachment;
-    using ButtonAttachment   = juce::AudioProcessorValueTreeState::ButtonAttachment;
-    using ComboBoxAttachment = juce::AudioProcessorValueTreeState::ComboBoxAttachment;
+    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+    using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
 
     PluginProcessor& processorRef;
 
     juce::Slider       pitchSlider;
     juce::Slider       mixSlider;
+    juce::Slider       haasSlider;
     juce::ToggleButton monoListenButton { "Mono Listen" };
-    juce::ComboBox     algorithmCombo;
 
     juce::Label pitchLabel { {}, "Pitch" };
     juce::Label mixLabel { {}, "Mix" };
-    juce::Label algorithmLabel { {}, "Algorithm" };
+    juce::Label haasLabel { {}, "Haas" };
 
-    std::unique_ptr<SliderAttachment>   pitchAttachment;
-    std::unique_ptr<SliderAttachment>   mixAttachment;
-    std::unique_ptr<ButtonAttachment>   monoListenAttachment;
-    std::unique_ptr<ComboBoxAttachment> algorithmAttachment;
+    std::unique_ptr<SliderAttachment> pitchAttachment;
+    std::unique_ptr<SliderAttachment> mixAttachment;
+    std::unique_ptr<SliderAttachment> haasAttachment;
+    std::unique_ptr<ButtonAttachment> monoListenAttachment;
 
     std::unique_ptr<melatonin::Inspector> inspector;
     juce::TextButton                      inspectButton { "Inspect the UI" };

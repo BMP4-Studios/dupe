@@ -10,7 +10,7 @@ PluginProcessor::PluginProcessor()
     pitchParam      = apvts.getRawParameterValue (Parameters::pitchID);
     mixParam        = apvts.getRawParameterValue (Parameters::mixID);
     monoListenParam = apvts.getRawParameterValue (Parameters::monoListenID);
-    algorithmParam  = apvts.getRawParameterValue (Parameters::algorithmID);
+    haasParam       = apvts.getRawParameterValue (Parameters::haasID);
 }
 
 PluginProcessor::~PluginProcessor() = default;
@@ -36,12 +36,22 @@ void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock) RTS
 
     shifterUp.prepare (spec);
     shifterDown.prepare (spec);
+
+    currentSampleRate = sampleRate;
+
+    // Haas-style precedence delay applied to wetR. Antisymmetric side preserves mono compatibility; the delay
+    // decorrelates L/R in time to broaden stereo image. Allocate for the full parameter range; delay is set per-block.
+    const auto maxHaasSamples = static_cast<int> (Parameters::haasMaxMs * 0.001f * sampleRate) + 1;
+    haasDelay.setMaximumDelayInSamples (maxHaasSamples);
+    haasDelay.prepare (spec);
+    haasDelay.reset();
 }
 
 void PluginProcessor::releaseResources()
 {
     shifterUp.reset();
     shifterDown.reset();
+    haasDelay.reset();
 }
 
 bool PluginProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -60,10 +70,12 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     const auto cents      = pitchParam->load();
     const auto mix        = mixParam->load();
     const auto monoListen = monoListenParam->load() > 0.5f;
-    const auto algorithm  = static_cast<int> (algorithmParam->load());
+    const auto haasMs     = haasParam->load();
 
     shifterUp.setCents (cents);
     shifterDown.setCents (-cents);
+
+    haasDelay.setDelay (haasMs * 0.001f * static_cast<float> (currentSampleRate));
 
     const auto numChannels = buffer.getNumChannels();
     const auto numSamples  = buffer.getNumSamples();
@@ -78,21 +90,16 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
         const float wetL = shifterUp.processSample (dry);
         const float wetR = shifterDown.processSample (dry);
 
-        if (algorithm == Parameters::Algorithm::MSWide)
-        {
-            // Mid = dry, Side = decorrelated wet difference.
-            // (L+R)/2 collapses to dry exactly, so mono is artifact-free.
-            // mix [0,1] is rescaled to width [0,2] for stronger sides.
-            const float side  = 0.5f * (wetL - wetR);
-            const float width = 2.0f * mix;
-            L[i]              = dry + width * side;
-            R[i]              = dry - width * side;
-        }
-        else
-        {
-            L[i] = dry * (1.0f - mix) + wetL * mix;
-            R[i] = dry * (1.0f - mix) + wetR * mix;
-        }
+        haasDelay.pushSample (0, wetR);
+        const float wetRDelayed = haasDelay.popSample (0);
+
+        // Mid = dry, Side = decorrelated wet difference with optional Haas offset on the negative branch.
+        // Side stays antisymmetric so (L+R)/2 collapses to dry exactly, preserving mono compatibility.
+        // mix [0,1] rescaled to width [0,4] for aggressive sides.
+        const float side  = 0.5f * (wetL - wetRDelayed);
+        const float width = 4.0f * mix;
+        L[i]              = dry + width * side;
+        R[i]              = dry - width * side;
     }
 
     if (monoListen && numChannels > 1)

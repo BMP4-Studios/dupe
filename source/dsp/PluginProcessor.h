@@ -41,13 +41,16 @@ public:
     juce::AudioProcessorValueTreeState apvts;
 
 private:
-    MicroPitchShifter<float> shifterUp;
-    MicroPitchShifter<float> shifterDown;
+    MicroPitchShifter<float>                                                  shifterUp;
+    MicroPitchShifter<float>                                                  shifterDown;
+    juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::None> haasDelay;
 
     std::atomic<float>* pitchParam      = nullptr;
     std::atomic<float>* mixParam        = nullptr;
     std::atomic<float>* monoListenParam = nullptr;
-    std::atomic<float>* algorithmParam  = nullptr;
+    std::atomic<float>* haasParam       = nullptr;
+
+    double currentSampleRate = 0.0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginProcessor)
 };

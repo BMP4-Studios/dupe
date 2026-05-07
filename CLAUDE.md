@@ -90,7 +90,9 @@ For anything in the audio thread / hot DSP path (e.g. `processBlock`):
 
 ## Code Style
 
-Uses `.clang-format` with Allman-style braces, 4-space indentation, no column limit.
+Uses `.clang-format` with Allman-style braces, 4-space indentation, and a 120-column limit.
+
+Hard-wrap comments at column 120 too. clang-format has `ReflowComments: false`, so it won't reformat them automatically — write them at the right width up front.
 
 ## Workflow
 

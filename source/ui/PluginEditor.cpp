@@ -12,19 +12,15 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
 
     setupRotary (pitchSlider);
     setupRotary (mixSlider);
+    setupRotary (haasSlider);
 
     pitchAttachment = std::make_unique<SliderAttachment> (processorRef.apvts, Parameters::pitchID, pitchSlider);
     mixAttachment   = std::make_unique<SliderAttachment> (processorRef.apvts, Parameters::mixID, mixSlider);
+    haasAttachment  = std::make_unique<SliderAttachment> (processorRef.apvts, Parameters::haasID, haasSlider);
 
     addAndMakeVisible (monoListenButton);
     monoListenAttachment
         = std::make_unique<ButtonAttachment> (processorRef.apvts, Parameters::monoListenID, monoListenButton);
-
-    addAndMakeVisible (algorithmCombo);
-    algorithmCombo.addItem ("Classic", 1);
-    algorithmCombo.addItem ("M/S Wide", 2);
-    algorithmAttachment
-        = std::make_unique<ComboBoxAttachment> (processorRef.apvts, Parameters::algorithmID, algorithmCombo);
 
     auto setupLabel = [this] (juce::Label& l)
     {
@@ -34,8 +30,7 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
 
     setupLabel (pitchLabel);
     setupLabel (mixLabel);
-    setupLabel (algorithmLabel);
-    algorithmLabel.setJustificationType (juce::Justification::centredRight);
+    setupLabel (haasLabel);
 
     addAndMakeVisible (inspectButton);
     inspectButton.onClick = [this]
@@ -63,23 +58,24 @@ void PluginEditor::resized()
 {
     auto area = getLocalBounds().reduced (12);
 
-    auto top = area.removeFromTop (24);
-    algorithmLabel.setBounds (top.removeFromLeft (90));
-    algorithmCombo.setBounds (top.removeFromLeft (160));
-    area.removeFromTop (8);
-
     auto bottom = area.removeFromBottom (30);
     inspectButton.setBounds (bottom.removeFromRight (140));
     monoListenButton.setBounds (bottom.removeFromLeft (140));
 
     area.removeFromBottom (8);
 
-    auto knobs     = area;
-    auto pitchArea = knobs.removeFromLeft (knobs.getWidth() / 2);
+    auto       knobs     = area;
+    const auto third     = knobs.getWidth() / 3;
+    auto       pitchArea = knobs.removeFromLeft (third);
+    auto       mixArea   = knobs.removeFromLeft (third);
+    auto       haasArea  = knobs;
 
     pitchLabel.setBounds (pitchArea.removeFromTop (24));
     pitchSlider.setBounds (pitchArea);
 
-    mixLabel.setBounds (knobs.removeFromTop (24));
-    mixSlider.setBounds (knobs);
+    mixLabel.setBounds (mixArea.removeFromTop (24));
+    mixSlider.setBounds (mixArea);
+
+    haasLabel.setBounds (haasArea.removeFromTop (24));
+    haasSlider.setBounds (haasArea);
 }
