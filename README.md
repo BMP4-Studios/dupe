@@ -81,11 +81,12 @@ Every push and PR triggers:
 Releases are tag-driven. The `release` job in `build_and_test.yml` is gated on `contains(github.ref, 'tags/v')` and uses `softprops/action-gh-release` to publish build artifacts (`.exe`, `.zip`, `.pkg`) as a GitHub prerelease.
 
 To cut a release:
-
-1. Update the `VERSION` file in the repo root (e.g. `0.1.0`). `PamplejuceVersion.cmake` can auto-bump the patch level, but for a real release set the version explicitly.
-2. Commit and push to `main`.
-3. Tag the commit with a `v`-prefixed tag matching the version, then push the tag:
+1. On a release branch, update the `VERSION` file in the repo root (e.g. `0.1.0`).
+2. Open a PR against `main` and get it merged.
+3. Pull the merged commit locally, then tag it with a `v`-prefixed tag matching the version and push the tag:
    ```bash
+   git checkout main
+   git pull
    git tag v0.1.0
    git push origin v0.1.0
    ```
