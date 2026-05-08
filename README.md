@@ -1,13 +1,13 @@
 [![Build](https://github.com/vberthiaume/dupe/actions/workflows/build_and_test.yml/badge.svg?branch=main)](https://github.com/vberthiaume/dupe/actions/workflows/build_and_test.yml)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-# Dupe — mono-to-stereo widener
+# Dupe: mono-to-stereo widener
 
-![One does not simply turn a mono signal into stereo](https://github.com/user-attachments/assets/68a7dfb9-5bfe-4c21-8e8a-593ed6d06d6f)
+![One does not simply turn a mono signal into stereo](.github/images/one_does_not_simply.jpg)
 
-A JUCE audio plugin that turns a mono source (typically a guitar or vocal) into a wide stereo image while staying perfectly mono-compatible. Two micro pitch-shifters detune the input by ±`Pitch` cents; their decorrelated difference forms a pure side signal, while the dry input stays as the mid. The output is constructed as `L = dry + width·side`, `R = dry − width·side`, so summing `(L+R)/2` collapses back to the dry signal exactly — no comb filtering, no level drop, no chorusing on mono. An optional Haas-style precedence delay on one of the wet branches broadens the image further without breaking mono compatibility.
+A JUCE audio plugin that turns a mono source (typically a guitar or vocal) into a wide stereo image while staying perfectly mono-compatible. Two micro pitch-shifters detune the input by ±`Pitch` cents; their decorrelated difference forms a pure side signal, while the dry input stays as the mid. The output is constructed as `L = dry + width·side`, `R = dry − width·side`, so summing `(L+R)/2` collapses back to the dry signal exactly: no comb filtering, no level drop, no chorusing on mono. An optional Haas-style precedence delay on one of the wet branches broadens the image further without breaking mono compatibility.
 
-Parameters: `Pitch` (0–40 cents, default 7), `Mix` (0–1, default 1.0 — scales the side gain up to 4× internally), `Haas` (0–30 ms, default 0), `Mono Listen` (sums output to mono in-plugin — useful for verifying mono compatibility).
+Parameters: `Pitch` (0–40 cents, default 7), `Mix` (0–1, default 1.0; scales the side gain up to 4× internally), `Haas` (0–30 ms, default 0), `Mono Listen` (sums output to mono in-plugin, useful for verifying mono compatibility).
 
 Built on the [Starty](https://github.com/vberthiaume/starty) template, which itself derives from [Pamplejuce](https://github.com/sudara/pamplejuce).
 
@@ -47,7 +47,7 @@ ctest --test-dir Builds --output-on-failure
 For a universal macOS binary, add `-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"` to the configure step.
 
 ## Run RTSan locally (macOS)
-CI runs RealtimeSanitizer on Linux. To check locally on macOS, install Homebrew LLVM — Apple Clang doesn't ship the RTSan runtime:
+CI runs RealtimeSanitizer on Linux. To check locally on macOS, install Homebrew LLVM, since Apple Clang doesn't ship the RTSan runtime:
 ```bash
 brew install llvm
 ```
@@ -71,11 +71,28 @@ ctest --test-dir Builds-rtsan --output-on-failure --verbose -E NOT_BUILT
 
 ## CI
 Every push and PR triggers:
-- `build_and_test` — Linux/macOS/Windows, `pluginval` validation, artifact upload
-- `instrumented_tests` — ASan / UBSan / TSan / RTSan (clang-20 for the latter), plus a Coverage report (gcovr → HTML artifact + step-summary numbers)
-- `clang-tidy` — posts review comments on PRs
+- `build_and_test`: Linux/macOS/Windows, `pluginval` validation, artifact upload
+- `instrumented_tests`: ASan / UBSan / TSan / RTSan (clang-20 for the latter), plus a Coverage report (gcovr → HTML artifact + step-summary numbers)
+- `clang-tidy`: posts review comments on PRs
 
-`nightly.yml` is wired up but its `schedule:` block is currently commented out — push-driven CI is enough while development is active. Re-enable the cron in that file once the project is in maintenance mode and external drift (JUCE on `develop`, apt packages, runner images) becomes the main breakage risk.
+`nightly.yml` is wired up but its `schedule:` block is currently commented out, since push-driven CI is enough while development is active. Re-enable the cron in that file once the project is in maintenance mode and external drift (JUCE on `develop`, apt packages, runner images) becomes the main breakage risk.
+
+## Releasing
+Releases are tag-driven. The `release` job in `build_and_test.yml` is gated on `contains(github.ref, 'tags/v')` and uses `softprops/action-gh-release` to publish build artifacts (`.exe`, `.zip`, `.pkg`) as a GitHub prerelease.
+
+To cut a release:
+1. On a release branch, update the `VERSION` file in the repo root (e.g. `0.1.0`).
+2. Open a PR against `main` and get it merged.
+3. Pull the merged commit locally, then tag it with a `v`-prefixed tag matching the version and push the tag:
+   ```bash
+   git checkout main
+   git pull
+   git tag v0.1.0
+   git push origin v0.1.0
+   ```
+4. CI runs the full matrix on the tag, then the `release` job picks up the artifacts and publishes a draft prerelease on GitHub. Open the Releases page, fill in the description, flip the prerelease flag off if it's a real release, and publish.
+
+The `v` prefix is required; a bare `0.1.0` tag won't trigger the release job.
 
 ## License
 Dupe is released under the [GNU Affero General Public License, version 3](LICENSE) (AGPLv3). Copyright (C) 2026 Vincent Berthiaume.
