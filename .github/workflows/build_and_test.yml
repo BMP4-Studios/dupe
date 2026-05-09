@@ -403,6 +403,8 @@ jobs:
     if: contains(github.ref, 'tags/v')
     runs-on: ubuntu-latest
     needs: build_and_test
+    permissions:
+      contents: write   # softprops/action-gh-release needs this to create the release
 
     steps:
       - name: Get Artifacts
