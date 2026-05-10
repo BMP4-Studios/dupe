@@ -21,10 +21,10 @@ set(PROJECT_NAME "Dupe")
 set(PRODUCT_NAME "Dupe")
 
 # Used for the MacOS bundle name and Installers
-set(COMPANY_NAME "Vincent Berthiaume")
+set(COMPANY_NAME "BMP4")
 
 # Used for the MacOS bundle identifier (and signing)
-set(BUNDLE_ID "com.vincentberthiaume.dupe")
+set(BUNDLE_ID "com.BMP4.dupe")
 
 # Plugin formats to build
 # Valid choices: AAX Unity VST VST3 AU AUv3 Standalone
