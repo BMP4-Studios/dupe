@@ -8,7 +8,6 @@ class PluginEditor : public juce::AudioProcessorEditor
 {
 public:
     explicit PluginEditor (PluginProcessor&);
-    ~PluginEditor() override;
 
     void paint (juce::Graphics& g) override;
     void resized() override;
