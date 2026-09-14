@@ -11,7 +11,6 @@ class PluginProcessor : public juce::AudioProcessor
 {
 public:
     PluginProcessor();
-    ~PluginProcessor() override;
 
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters) -- JUCE override signature, can't change
     void prepareToPlay (double sampleRate, int samplesPerBlock) RTSAN_BLOCKING override;

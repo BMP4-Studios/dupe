@@ -384,7 +384,7 @@ jobs:
           files-changed-only: false
           # Only post a summary comment on PRs
           thread-comments: ${{ github.event_name == 'pull_request' }}
-          tidy-review: true
+          tidy-review: false
           step-summary: true
           extensions: cpp,h
           # We only want tidy to look at our own source tree (source/, tests/, benchmarks/).

@@ -21,7 +21,7 @@ set(PROJECT_NAME "Dupe")
 set(PRODUCT_NAME "Dupe")
 
 # Used for the MacOS bundle name and Installers
-set(COMPANY_NAME "BMP4")
+set(COMPANY_NAME "BMP4 Studios")
 
 # Used for the MacOS bundle identifier (and signing)
 set(BUNDLE_ID "com.BMP4.dupe")

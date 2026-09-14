@@ -3,15 +3,15 @@
 
 namespace
 {
-constexpr int editorWidth      = 420;
-constexpr int editorHeight     = 280;
-constexpr int outerMargin      = 12;
-constexpr int gap              = 8;
-constexpr int labelHeight      = 24;
-constexpr int bottomRowHeight  = 30;
-constexpr int bottomButtonW    = 140;
-constexpr int sliderTextWidth  = 80;
-constexpr int sliderTextHeight = 20;
+constexpr auto editorWidth      = 420;
+constexpr auto editorHeight     = 420;
+constexpr auto outerMargin      = 12;
+constexpr auto gap              = 8;
+constexpr auto labelHeight      = 24;
+constexpr auto bottomRowHeight  = 30;
+constexpr auto bottomButtonW    = 140;
+constexpr auto sliderTextWidth  = 80;
+constexpr auto sliderTextHeight = 20;
 } // namespace
 
 PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), processorRef (p)
@@ -32,8 +32,7 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
     haasAttachment  = std::make_unique<SliderAttachment> (processorRef.getApvts(), Parameters::haasID, haasSlider);
 
     addAndMakeVisible (monoListenButton);
-    monoListenAttachment
-        = std::make_unique<ButtonAttachment> (processorRef.getApvts(), Parameters::monoListenID, monoListenButton);
+    monoListenAttachment = std::make_unique<ButtonAttachment> (processorRef.getApvts(), Parameters::monoListenID, monoListenButton);
 
     auto setupLabel = [this] (juce::Label& l)
     {
@@ -45,6 +44,7 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
     setupLabel (mixLabel);
     setupLabel (haasLabel);
 
+#if JUCE_DEBUG
     addAndMakeVisible (inspectButton);
     inspectButton.onClick = [this]
     {
@@ -55,11 +55,10 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
         }
         inspector->setVisible (true);
     };
+#endif
 
     setSize (editorWidth, editorHeight);
 }
-
-PluginEditor::~PluginEditor() = default;
 
 void PluginEditor::paint (juce::Graphics& g)
 {
@@ -72,7 +71,11 @@ void PluginEditor::resized()
     auto area = getLocalBounds().reduced (outerMargin);
 
     auto bottom = area.removeFromBottom (bottomRowHeight);
-    inspectButton.setBounds (bottom.removeFromRight (bottomButtonW));
+    [[maybe_unused]]
+    const auto inspectBounds {bottom.removeFromRight (bottomButtonW)};
+#if JUCE_DEBUG
+    inspectButton.setBounds (inspectBounds);
+#endif
     monoListenButton.setBounds (bottom.removeFromLeft (bottomButtonW));
 
     area.removeFromBottom (gap);

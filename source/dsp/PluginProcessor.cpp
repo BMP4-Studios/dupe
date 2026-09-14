@@ -18,8 +18,6 @@ PluginProcessor::PluginProcessor()
 {
 }
 
-PluginProcessor::~PluginProcessor() = default;
-
 const juce::String PluginProcessor::getName() const { return JucePlugin_Name; }
 bool               PluginProcessor::acceptsMidi() const { return false; }
 bool               PluginProcessor::producesMidi() const { return false; }
