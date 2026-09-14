@@ -34,7 +34,9 @@ private:
     std::unique_ptr<ButtonAttachment> monoListenAttachment;
 
     std::unique_ptr<melatonin::Inspector> inspector;
+#if JUCE_DEBUG
     juce::TextButton                      inspectButton { "Inspect the UI" };
+#endif
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginEditor)
 };

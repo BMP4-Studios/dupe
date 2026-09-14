@@ -45,6 +45,7 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
     setupLabel (mixLabel);
     setupLabel (haasLabel);
 
+#if JUCE_DEBUG
     addAndMakeVisible (inspectButton);
     inspectButton.onClick = [this]
     {
@@ -55,6 +56,7 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
         }
         inspector->setVisible (true);
     };
+#endif
 
     setSize (editorWidth, editorHeight);
 }
@@ -72,7 +74,11 @@ void PluginEditor::resized()
     auto area = getLocalBounds().reduced (outerMargin);
 
     auto bottom = area.removeFromBottom (bottomRowHeight);
-    inspectButton.setBounds (bottom.removeFromRight (bottomButtonW));
+    [[maybe_unused]]
+    const auto inspectBounds {bottom.removeFromRight (bottomButtonW)};
+#if JUCE_DEBUG
+    inspectButton.setBounds (inspectBounds);
+#endif
     monoListenButton.setBounds (bottom.removeFromLeft (bottomButtonW));
 
     area.removeFromBottom (gap);
