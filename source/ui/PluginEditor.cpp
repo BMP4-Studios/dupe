@@ -69,7 +69,16 @@ PluginEditor::PluginEditor (PluginProcessor& p)
 void PluginEditor::paint (juce::Graphics& g)
 {
     g.drawImage (backgroundImage, getLocalBounds().toFloat());
-    g.drawImage (dupeLogo, logoBounds);
+
+    const auto delayAmount { .5f };
+    const auto numEchoes = static_cast<int> (delayAmount * 8); // knob-driven
+    const auto offset { 10 };
+    for (int i = numEchoes; i >= 0; --i)
+    {
+        float alpha = 1.0f - (float) i / (numEchoes + 1);
+        g.setOpacity (alpha);
+        g.drawImage (dupeLogo, logoBounds.withPosition (i * offset, i * offset));
+    }
 }
 
 void PluginEditor::resized()
@@ -103,7 +112,6 @@ void PluginEditor::resized()
 
     bounds.removeFromBottom (gap);
 
-    // logoBounds = bounds.withSizeKeepingCentre (434, 463);
     constexpr auto imageRatio { 434.f / 463.f };
     logoBounds = bounds.withSizeKeepingCentre (bounds.getHeight() * imageRatio, bounds.getHeight());
 }
