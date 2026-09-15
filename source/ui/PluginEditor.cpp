@@ -5,6 +5,7 @@ namespace
 {
 constexpr auto editorWidth      = 420;
 constexpr auto editorHeight     = 420;
+constexpr auto knobHeight       = 150;
 constexpr auto outerMargin      = 12;
 constexpr auto gap              = 8;
 constexpr auto labelHeight      = 24;
@@ -16,6 +17,9 @@ constexpr auto sliderTextHeight = 20;
 
 PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), processorRef (p)
 {
+    dupeLogo.setImage (juce::ImageCache::getFromMemory (BinaryData::logo_png, BinaryData::logo_pngSize));
+    addAndMakeVisible (dupeLogo);
+
     auto setupRotary = [this] (juce::Slider& s)
     {
         addAndMakeVisible (s);
@@ -80,7 +84,7 @@ void PluginEditor::resized()
 
     bounds.removeFromBottom (gap);
 
-    auto       knobBounds     = bounds;
+    auto       knobBounds     = bounds.removeFromBottom (knobHeight);
     const auto third     = knobBounds.getWidth() / 3;
     auto       pitchArea = knobBounds.removeFromLeft (third);
     auto       mixArea   = knobBounds.removeFromLeft (third);
@@ -94,4 +98,7 @@ void PluginEditor::resized()
 
     haasLabel.setBounds (haasArea.removeFromTop (labelHeight));
     haasSlider.setBounds (haasArea);
+
+    bounds.removeFromBottom (gap);
+    dupeLogo.setBounds (bounds);
 }
