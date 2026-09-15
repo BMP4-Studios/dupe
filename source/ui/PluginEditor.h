@@ -18,8 +18,9 @@ private:
 
     PluginProcessor& processorRef;
 
-    juce::Image backgroundImage;
-    juce::ImageComponent dupeLogo;
+    juce::Image            backgroundImage;
+    juce::Image            dupeLogo;
+    juce::Rectangle<float> logoBounds;
 
     juce::Slider       pitchSlider;
     juce::Slider       mixSlider;
@@ -38,7 +39,7 @@ private:
     std::unique_ptr<melatonin::Inspector> inspector;
 
 #if JUCE_DEBUG
-    juce::TextButton                      inspectButton { "Inspect the UI" };
+    juce::TextButton inspectButton { "Inspect the UI" };
 #endif
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginEditor)

@@ -16,8 +16,6 @@ public:
     void prepareToPlay (double sampleRate, int samplesPerBlock) RTSAN_BLOCKING override;
     void releaseResources() override;
 
-    bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
-
     void processBlock (juce::AudioBuffer<float>& buffer,
                        juce::MidiBuffer&         midiMessages) noexcept RTSAN_NONBLOCKING override;
 
@@ -41,6 +39,9 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState& getApvts() noexcept { return apvts; }
+
+protected:
+    bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
 
 private:
     juce::AudioProcessorValueTreeState apvts;

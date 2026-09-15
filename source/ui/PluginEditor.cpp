@@ -18,11 +18,9 @@ constexpr auto sliderTextHeight = 20;
 PluginEditor::PluginEditor (PluginProcessor& p)
 : AudioProcessorEditor (&p),
   processorRef (p),
-  backgroundImage { juce::ImageCache::getFromMemory (BinaryData::background_jpg, BinaryData::background_jpgSize) }
+  backgroundImage { juce::ImageCache::getFromMemory (BinaryData::background_jpg, BinaryData::background_jpgSize) },
+  dupeLogo { juce::ImageCache::getFromMemory (BinaryData::logo_png, BinaryData::logo_pngSize) }
 {
-    dupeLogo.setImage (juce::ImageCache::getFromMemory (BinaryData::logo_png, BinaryData::logo_pngSize));
-    addAndMakeVisible (dupeLogo);
-
     auto setupRotary = [this] (juce::Slider& s)
     {
         addAndMakeVisible (s);
@@ -39,7 +37,8 @@ PluginEditor::PluginEditor (PluginProcessor& p)
     haasAttachment  = std::make_unique<SliderAttachment> (processorRef.getApvts(), Parameters::haasID, haasSlider);
 
     addAndMakeVisible (monoListenButton);
-    monoListenAttachment = std::make_unique<ButtonAttachment> (processorRef.getApvts(), Parameters::monoListenID, monoListenButton);
+    monoListenAttachment
+        = std::make_unique<ButtonAttachment> (processorRef.getApvts(), Parameters::monoListenID, monoListenButton);
 
     auto setupLabel = [this] (juce::Label& l)
     {
@@ -70,37 +69,41 @@ PluginEditor::PluginEditor (PluginProcessor& p)
 void PluginEditor::paint (juce::Graphics& g)
 {
     g.drawImage (backgroundImage, getLocalBounds().toFloat());
+    g.drawImage (dupeLogo, logoBounds);
 }
 
 void PluginEditor::resized()
 {
-    auto bounds = getLocalBounds().reduced (outerMargin);
-    auto bottomRow = bounds.removeFromBottom (bottomRowHeight);
-    [[maybe_unused]] const auto inspectBounds {bottomRow.removeFromRight (bottomButtonW)};
+    auto                        bounds    = getLocalBounds().toFloat().reduced (outerMargin);
+    auto                        bottomRow = bounds.removeFromBottom (bottomRowHeight);
+    [[maybe_unused]] const auto inspectBounds { bottomRow.removeFromRight (bottomButtonW) };
 
 #if JUCE_DEBUG
-    inspectButton.setBounds (inspectBounds);
+    inspectButton.setBounds (inspectBounds.toNearestInt());
 #endif
 
-    monoListenButton.setBounds (bottomRow.removeFromLeft (bottomButtonW));
+    monoListenButton.setBounds (bottomRow.removeFromLeft (bottomButtonW).toNearestInt());
 
     bounds.removeFromBottom (gap);
 
-    auto       knobBounds     = bounds.removeFromBottom (knobHeight);
-    const auto third     = knobBounds.getWidth() / 3;
-    auto       pitchArea = knobBounds.removeFromLeft (third);
-    auto       mixArea   = knobBounds.removeFromLeft (third);
-    auto       haasArea  = knobBounds;
+    auto       knobBounds = bounds.removeFromBottom (knobHeight);
+    const auto third      = knobBounds.getWidth() / 3;
+    auto       pitchArea  = knobBounds.removeFromLeft (third);
+    auto       mixArea    = knobBounds.removeFromLeft (third);
+    auto       haasArea   = knobBounds;
 
-    pitchLabel.setBounds (pitchArea.removeFromTop (labelHeight));
-    pitchSlider.setBounds (pitchArea);
+    pitchLabel.setBounds (pitchArea.removeFromTop (labelHeight).toNearestInt());
+    pitchSlider.setBounds (pitchArea.toNearestInt());
 
-    mixLabel.setBounds (mixArea.removeFromTop (labelHeight));
-    mixSlider.setBounds (mixArea);
+    mixLabel.setBounds (mixArea.removeFromTop (labelHeight).toNearestInt());
+    mixSlider.setBounds (mixArea.toNearestInt());
 
-    haasLabel.setBounds (haasArea.removeFromTop (labelHeight));
-    haasSlider.setBounds (haasArea);
+    haasLabel.setBounds (haasArea.removeFromTop (labelHeight).toNearestInt());
+    haasSlider.setBounds (haasArea.toNearestInt());
 
     bounds.removeFromBottom (gap);
-    dupeLogo.setBounds (bounds);
+
+    // logoBounds = bounds.withSizeKeepingCentre (434, 463);
+    constexpr auto imageRatio { 434.f / 463.f };
+    logoBounds = bounds.withSizeKeepingCentre (bounds.getHeight() * imageRatio, bounds.getHeight());
 }
