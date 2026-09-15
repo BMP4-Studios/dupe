@@ -18,6 +18,7 @@ private:
 
     PluginProcessor& processorRef;
 
+    juce::Image backgroundImage;
     juce::ImageComponent dupeLogo;
 
     juce::Slider       pitchSlider;

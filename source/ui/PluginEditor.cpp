@@ -15,7 +15,10 @@ constexpr auto sliderTextWidth  = 80;
 constexpr auto sliderTextHeight = 20;
 } // namespace
 
-PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), processorRef (p)
+PluginEditor::PluginEditor (PluginProcessor& p)
+: AudioProcessorEditor (&p),
+  processorRef (p),
+  backgroundImage { juce::ImageCache::getFromMemory (BinaryData::background_jpg, BinaryData::background_jpgSize) }
 {
     dupeLogo.setImage (juce::ImageCache::getFromMemory (BinaryData::logo_png, BinaryData::logo_pngSize));
     addAndMakeVisible (dupeLogo);
@@ -66,8 +69,7 @@ PluginEditor::PluginEditor (PluginProcessor& p) : AudioProcessorEditor (&p), pro
 
 void PluginEditor::paint (juce::Graphics& g)
 {
-    const auto bg = juce::ImageCache::getFromMemory (BinaryData::background_jpg, BinaryData::background_jpgSize);
-    g.drawImage (bg, getLocalBounds().toFloat());
+    g.drawImage (backgroundImage, getLocalBounds().toFloat());
 }
 
 void PluginEditor::resized()
