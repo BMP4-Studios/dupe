@@ -68,23 +68,23 @@ void PluginEditor::paint (juce::Graphics& g)
 
 void PluginEditor::resized()
 {
-    auto area = getLocalBounds().reduced (outerMargin);
+    auto bounds = getLocalBounds().reduced (outerMargin);
+    auto bottomRow = bounds.removeFromBottom (bottomRowHeight);
+    [[maybe_unused]] const auto inspectBounds {bottomRow.removeFromRight (bottomButtonW)};
 
-    auto bottom = area.removeFromBottom (bottomRowHeight);
-    [[maybe_unused]]
-    const auto inspectBounds {bottom.removeFromRight (bottomButtonW)};
 #if JUCE_DEBUG
     inspectButton.setBounds (inspectBounds);
 #endif
-    monoListenButton.setBounds (bottom.removeFromLeft (bottomButtonW));
 
-    area.removeFromBottom (gap);
+    monoListenButton.setBounds (bottomRow.removeFromLeft (bottomButtonW));
 
-    auto       knobs     = area;
-    const auto third     = knobs.getWidth() / 3;
-    auto       pitchArea = knobs.removeFromLeft (third);
-    auto       mixArea   = knobs.removeFromLeft (third);
-    auto       haasArea  = knobs;
+    bounds.removeFromBottom (gap);
+
+    auto       knobBounds     = bounds;
+    const auto third     = knobBounds.getWidth() / 3;
+    auto       pitchArea = knobBounds.removeFromLeft (third);
+    auto       mixArea   = knobBounds.removeFromLeft (third);
+    auto       haasArea  = knobBounds;
 
     pitchLabel.setBounds (pitchArea.removeFromTop (labelHeight));
     pitchSlider.setBounds (pitchArea);
